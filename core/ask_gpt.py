@@ -8,7 +8,6 @@ import time
 from requests.exceptions import RequestException
 from core.config_utils import load_key
 
-
 LOG_FOLDER = 'output/gpt_log'
 LOCK = Lock()
 
@@ -64,18 +63,19 @@ def ask_gpt(prompt, response_json=True, valid_def=None, log_title='default'):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = client.chat.completions.create(
-                model=api_set["model"],
-                messages=messages,
-                response_format=response_format,
-                # response_format={"type": "json_object"},
-                timeout=550 #! set timeout
-            )
+            completion_args = {
+                "model": api_set["model"],
+                "messages": messages
+            }
+            if response_format is not None:
+                completion_args["response_format"] = response_format
+                
+            response = client.chat.completions.create(**completion_args)
             
             if response_json:
                 try:
                     response_data = json_repair.loads(response.choices[0].message.content)
-                    print(f"summary repair {response_data}")
+                    
                     # check if the response is valid, otherwise save the log and raise error and retry
                     if valid_def:
                         valid_response = valid_def(response_data)
